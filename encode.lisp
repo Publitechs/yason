@@ -44,6 +44,9 @@
   (write-char #\" stream)
   string)
 
+(defmethod encode ((symbol  symbol) &optional (stream *standard-output*))
+  (encode (string-downcase (symbol-name symbol)) stream))
+
 (defmethod encode ((object rational) &optional (stream *standard-output*))
   (encode (float object) stream)
   object)
@@ -53,7 +56,7 @@
   object)
 
 (defmethod encode ((object integer) &optional (stream *standard-output*))
-  (princ object stream))
+  (format stream "~a" object))
 
 (defmacro with-aggregate/object ((stream opening-char closing-char) &body body)
   "Set up serialization context for aggregate serialization with the
@@ -78,7 +81,7 @@
          (write-indentation ,stream)
          (write-delimiter ,closing-char ,stream)))))
 
-(defun encode-key/value (key value stream)
+(defun  encode-key/value (key value stream)
   (encode key stream)
   (write-char #\: stream)
   (encode value stream))
@@ -99,11 +102,14 @@
     object))
 
 (defmethod encode ((object list) &optional (stream *standard-output*))
-  (with-aggregate/object (stream #\[ #\])
-    (dolist (value object)
-      (with-element-output ()
-        (encode value stream)))
-    object))
+  (if (and (listp (car object))
+           (not (listp (cdr (car object)))))
+      (encode-alist object stream)
+      (with-aggregate/object (stream #\[ #\])
+        (dolist (value object)
+          (with-element-output ()
+            (encode value stream)))
+        object)))
 
 (defun encode-symbol/value (symbol value stream)
   (let ((string (symbol-name symbol)))
@@ -113,14 +119,14 @@
   (with-aggregate/object (stream #\{ #\})
     (loop for (key . value) in object
           do (with-element-output ()
-               (encode-symbol/value key value stream)))
+               (encode-key/value key value stream)))
     object))
 
 (defun encode-plist (object &optional (stream *standard-output*))
   (with-aggregate/object (stream #\{ #\})
     (loop for (key value) on object by #'cddr
           do (with-element-output ()
-               (encode-symbol/value key value stream)))
+               (encode-key/value key value stream)))
     object))
 
 (defmethod encode ((object (eql 'true)) &optional (stream *standard-output*))

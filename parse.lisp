@@ -22,7 +22,7 @@
   "If set to a true value, JSON booleans will be read as the symbols
   TRUE and FALSE, not as T and NIL, respectively.")
 
-(defvar *parse-object-as* :hash-table
+(defvar *parse-object-as* :ia-hash-table
   "Set to either :hash-table, :plist or :alist to determine the data
   structure that objects are parsed to.")
 
@@ -34,6 +34,16 @@
   (make-array +default-string-length+
               :adjustable t :fill-pointer 0 :element-type 'character))
 
+(defun is-stop-char (next-char)
+  (or (eql #\, next-char)
+      (eql #\} next-char)
+      (eql #\] next-char)
+      (eql #\Space next-char)
+      (eql #\Newline next-char)
+      (eql #\Return next-char)
+      (eql #\" next-char)
+      (not next-char)))
+  
 (defun parse-number (input)
   ;; would be
   ;; (cl-ppcre:scan-to-strings "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+|)(?:[eE][-+]?[0-9]+|)" buffer)
@@ -42,7 +52,15 @@
     (loop
        while (position (peek-char nil input nil) ".0123456789+-Ee")
        do (vector-push-extend (read-char input) buffer))
-    (values (read-from-string buffer))))
+    (if (is-stop-char (peek-char nil input nil))
+        (values (read-from-string buffer))
+        ;; not a number actually. just happeded to have numbers at start.
+        ;; In spite of it's invalid json we just return string here
+        ;; spin here until , } ] or whitespaces
+        (loop
+          while (not (is-stop-char (peek-char nil input nil)))
+          finally (return buffer)
+          do (vector-push-extend (read-char input) buffer)))))
 
 (defun parse-string (input)
   (let ((output (make-adjustable-string)))
@@ -131,7 +149,7 @@
      (append to (list key value)))
     (:alist
      (acons key value to))
-    (:hash-table
+    ((or :hash-table :ia-hash-table)
      (setf (gethash key to) value)
      to)))
 
@@ -199,7 +217,6 @@
                                  :alist
                                  *parse-object-as*)))
       ;; end of backward compatibility code
-      (check-type *parse-object-as* (member :hash-table :alist :plist))
       (ecase (peek-char-skipping-whitespace input)
         (#\"
          (parse-string input))
