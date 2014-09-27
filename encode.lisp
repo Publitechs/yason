@@ -103,7 +103,8 @@
 
 (defmethod encode ((object list) &optional (stream *standard-output*))
   (if (and (listp (car object))
-           (not (listp (cdr (car object)))))
+           (or (symbolp (car (car object)))
+               (stringp (car (car object)))))
       (encode-alist object stream)
       (with-aggregate/object (stream #\[ #\])
         (dolist (value object)
