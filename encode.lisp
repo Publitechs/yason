@@ -23,6 +23,10 @@
   specialized by applications to perform specific rendering.  STREAM
   defaults to *STANDARD-OUTPUT*."))
 
+(defun encode-to-string (object)
+  (with-output-to-string (stream)
+    (encode object stream)))
+
 (defparameter *char-replacements*
   (alexandria:plist-hash-table
    '(#\\ "\\\\"
@@ -315,4 +319,4 @@ type for which an ENCODE method is defined."
    the ENCODE-SLOTS method as appropriate.")
   (:method (object)
     (with-object ()
-      (json:encode-slots object))))
+      (yason:encode-slots object))))
