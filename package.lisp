@@ -25,6 +25,7 @@
 
    ;; Basic encoder interface
    #:encode
+   #:encode-to-string
    #:encode-slots
    #:encode-object
    #:encode-plist
