@@ -25,7 +25,7 @@
 (defvar *parse-json-null-as-keyword* nil
   "If set to a true value, JSON nulls will be read as the keyword :NULL, not as NIL.")
 
-(defvar *parse-object-as* :ia-hash-table
+(defvar *parse-object-as* :hash-table
   "Set to either :hash-table, :plist or :alist to determine the data
   structure that objects are parsed to.")
 
