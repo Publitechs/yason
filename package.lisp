@@ -1,6 +1,6 @@
 ;; This file is part of yason, a Common Lisp JSON parser/encoder
 ;;
-;; Copyright (c) 2008-2012 Hans Huebner and contributors
+;; Copyright (c) 2008-2014 Hans Huebner and contributors
 ;; All rights reserved.
 ;;
 ;; Please see the file LICENSE in the distribution.
@@ -43,4 +43,5 @@
    #:with-object
    #:encode-object-element
    #:encode-object-elements
+   #:encode-object-slots
    #:with-object-element))

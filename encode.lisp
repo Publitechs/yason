@@ -1,6 +1,6 @@
 ;; This file is part of yason, a Common Lisp JSON parser/encoder
 ;;
-;; Copyright (c) 2008-2012 Hans Huebner and contributors
+;; Copyright (c) 2008-2014 Hans Huebner and contributors
 ;; All rights reserved.
 ;;
 ;; Please see the file LICENSE in the distribution.
@@ -56,7 +56,12 @@
   object)
 
 (defmethod encode ((object float) &optional (stream *standard-output*))
+<<<<<<< HEAD
   (princ (coerce object 'single-float) stream)
+=======
+  (let ((*read-default-float-format* 'double-float))
+    (format stream "~F" (coerce object 'double-float)))
+>>>>>>> b357add4f96586ab5c81f2bf2fe3a25e9cb01124
   object)
 
 (defmethod encode ((object integer) &optional (stream *standard-output*))
@@ -97,7 +102,7 @@
                  (encode-key/value key value stream)))
              object)
     object))
-                 
+
 (defmethod encode ((object vector) &optional (stream *standard-output*))
   (with-aggregate/object (stream #\[ #\])
     (loop for value across object
@@ -290,6 +295,26 @@ type for which an ENCODE method is defined."
   (loop for (key value) on elements by #'cddr
         do (encode-object-element key value)))
 
+(defun encode-object-slots (object slots)
+  "For each slot in SLOTS, encode that slot on OBJECT as an object element.
+Equivalent to calling ENCODE-OBJECT-ELEMENT for each slot where the
+key is the slot name, and the value is the (SLOT-VALUE OBJECT slot)"
+  (loop for slot in slots
+     do (encode-object-element (string slot)
+                               (slot-value object slot))))
+
+(define-compiler-macro encode-object-slots (&whole form &environment env object raw-slots)
+  "Compiler macro to allow open-coding with encode-object-slots when slots are literal list."
+  (let ((slots (macroexpand raw-slots env)))
+    (cond
+      ((null slots) nil)
+      ((eq (car slots) 'quote)
+       (setf slots (cadr slots))        ; Get the quoted list
+       `(with-slots ,slots ,object
+          ,@(loop for slot in slots
+               collect `(encode-object-element ,(string slot) ,slot))))
+      (t form))))
+
 (defmacro with-object-element ((key) &body body)
   "Open a new encoding context to encode a JSON object element.  KEY
   is the key of the element.  The value will be whatever BODY
@@ -307,16 +332,17 @@ type for which an ENCODE method is defined."
 
 (defgeneric encode-slots (object)
   (:documentation
-   "Generic function to encode objects.  Every class in a hierarchy
-   implements a method for ENCODE-OBJECT that serializes its slots.
-   It is a PROGN generic function so that for a given instance, all
-   slots are serialized by invoking the ENCODE-OBJECT method for all
-   classes that it inherits from."))
+   "Generic function to encode object slots. It should be called in an
+    object encoding context. It uses PROGN combinatation with
+    MOST-SPECIFIC-LAST order, so that base class slots are encoded
+    before derived class slots.")
+  (:method-combination progn :most-specific-last))
 
 (defgeneric encode-object (object)
   (:documentation
-   "Encode OBJECT, presumably a CLOS object as a JSON object, invoking
-   the ENCODE-SLOTS method as appropriate.")
+   "Generic function to encode an object. The default implementation
+    opens a new object encoding context and calls ENCODE-SLOTS on
+    the argument.")
   (:method (object)
     (with-object ()
       (yason:encode-slots object))))
