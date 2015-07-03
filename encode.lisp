@@ -56,12 +56,9 @@
   object)
 
 (defmethod encode ((object float) &optional (stream *standard-output*))
-<<<<<<< HEAD
   (princ (coerce object 'single-float) stream)
-=======
-  (let ((*read-default-float-format* 'double-float))
-    (format stream "~F" (coerce object 'double-float)))
->>>>>>> b357add4f96586ab5c81f2bf2fe3a25e9cb01124
+  ;; (let ((*read-default-float-format* 'double-float))
+  ;;   (format stream "~F" (coerce object 'double-float)))
   object)
 
 (defmethod encode ((object integer) &optional (stream *standard-output*))
